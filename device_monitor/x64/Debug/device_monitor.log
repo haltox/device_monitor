@@ -1,3 +1,0 @@
-﻿  WinDeviceMonitor.cpp
-main.obj : error LNK2019: symbole externe non résolu "public: static class DebugManager & __cdecl DebugManager::init(void)" (?init@DebugManager@@SAAEAV1@XZ) référencé dans la fonction "void __cdecl application_startup(void)" (?application_startup@@YAXXZ)
-C:\Users\siegf\source\repos\device_monitor\x64\Debug\device_monitor.exe : fatal error LNK1120: 1 externes non résolus
