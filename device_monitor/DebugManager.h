@@ -1,14 +1,19 @@
 #pragma once
 #include <memory>
+#include <functional>
 
 class DebugManager
 {
 
 public:
-	static DebugManager& init();
-	static DebugManager& instance();
+	static DebugManager& Init();
+
+	static DebugManager& Instance();
 
 	bool IsDebug() const;
+	void OnDebug(const std::function<void()> &fn) const;
+	void Throw(const std::string &message) const;
+	void ThrowIf(bool cond, const std::string& message) const;
 
 private:
 	DebugManager();

@@ -2,19 +2,31 @@
 
 #include <iostream>
 #include <Windows.h>
+#include <functional>
 
 class NoopDebugDelegate {
 public:
-	void init() {};
-	void uninit() {};
+	void Init() {};
+	void Uninit() {};
 	bool IsDebug() const { return false; }
+	void OnDebug(const std::function<void()>& fn) const {}
+	void Throw(const std::string& message) const {}
+	void ThrowIf(bool cond, const std::string& message) const {}
 };
 
 class ActuallyDebuggingDebugDelegate {
 public:
-	void init();
-	void uninit();
+	void Init();
+	void Uninit();
 	bool IsDebug() const { return true; }
+	void OnDebug(const std::function<void()>& fn) const { fn(); }
+	void Throw(const std::string& message) const { throw std::runtime_error{ message }; };
+	void ThrowIf(bool cond, const std::string& message) const;
+
+private:
+	HANDLE backupSTDIN;
+	HANDLE backupSTDERR;
+	HANDLE backupSTDOUT;
 };
 
 #ifdef DEBUG
@@ -33,6 +45,9 @@ public:
 	~DebugManagerImpl();
 
 	bool IsDebug() const;
+	void OnDebug(const std::function<void()>& fn) const;
+	void Throw(const std::string& message) const;
+	void ThrowIf(bool cond, const std::string& message) const;
 };
 
 
@@ -42,52 +57,95 @@ DebugManager::DebugManager()
 	: impl{ new DebugManagerImpl() } {
 }
 
-DebugManager& init() {
+DebugManager& DebugManager::Init() {
 	if (DebugManagerInstance != nullptr ) {
 		if (DebugManagerInstance->IsDebug()) {
 			throw std::runtime_error{ "Attempting to init DebugManager twice" };
 		}
 	}
+	DebugManagerInstance.reset(new DebugManager());
+	return *DebugManagerInstance;
 }
 
-DebugManager& DebugManager::instance() {
+DebugManager& DebugManager::Instance() {
 	if (DebugManagerInstance == nullptr) {
-		throw std::runtime_error{ "DebugManger must be initialized before instance access" };
+		throw std::runtime_error{ "DebugManager must be initialized before instance access" };
 	}
+
+	return *DebugManagerInstance;
 }
 
 bool DebugManager::IsDebug() const {
 	return impl->IsDebug();
 }
 
+void DebugManager::OnDebug(const std::function<void()> &fn) const
+{
+	return impl->OnDebug(fn);
+}
+
+void DebugManager::Throw(const std::string& message) const
+{
+	return impl->Throw(message);
+}
+
+void DebugManager::ThrowIf(bool cond, const std::string& message) const
+{
+	return impl->ThrowIf(cond ,message);
+}
+
 ////////////// actual delegate
 
-void ActuallyDebuggingDebugDelegate::init() {
-	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+void ActuallyDebuggingDebugDelegate::Init() {
+	
+	backupSTDIN = GetStdHandle(STD_INPUT_HANDLE);
+	backupSTDERR = GetStdHandle(STD_ERROR_HANDLE);
+	backupSTDOUT = GetStdHandle(STD_OUTPUT_HANDLE);
 
 	AllocConsole();
-	freopen("conin$", "r", stdin);
-	HANDLE hStdin2 = GetStdHandle(STD_INPUT_HANDLE);
-	freopen("conout$", "w", stdout);
-	freopen("conout$", "w", stderr);
-
-	std::cout << (unsigned long long)hStdin << "," << (unsigned long long)hStdin2 << std::endl;
+	(void)freopen("conin$", "r", stdin);
+	(void)freopen("conout$", "w", stdout);
+	(void)freopen("conout$", "w", stderr);
 }
 
-void ActuallyDebuggingDebugDelegate::uninit() {
+void ActuallyDebuggingDebugDelegate::Uninit() {
+	SetStdHandle(STD_INPUT_HANDLE, backupSTDIN);
+	SetStdHandle(STD_ERROR_HANDLE, backupSTDERR);
+	SetStdHandle(STD_OUTPUT_HANDLE, backupSTDOUT);
+	
 	FreeConsole();
 }
+
+void ActuallyDebuggingDebugDelegate::ThrowIf(bool cond, const std::string& message) const { 
+	if (cond) {
+		throw std::runtime_error{ message }; 
+	}
+};
 
 ////////////// pimpl
 
 DebugManager::DebugManagerImpl::DebugManagerImpl() {
-	delegate.init();
+	delegate.Init();
 }
 
 DebugManager::DebugManagerImpl::~DebugManagerImpl() {
-	delegate.uninit();
+	delegate.Uninit();
 }
 
 bool DebugManager::DebugManagerImpl::IsDebug() const{
 	return delegate.IsDebug();
+}
+
+void DebugManager::DebugManagerImpl::OnDebug(const std::function<void()>& fn) const {
+	delegate.OnDebug(fn);
+}
+
+void DebugManager::DebugManagerImpl::Throw(const std::string& message) const
+{
+	delegate.Throw(message);
+}
+
+void DebugManager::DebugManagerImpl::ThrowIf(bool cond, const std::string& message) const
+{
+	delegate.ThrowIf(cond, message);
 }
