@@ -8,7 +8,7 @@
 #include "DebugManager.h"
 
 WinDeviceMonitor::WinDeviceMonitor()
-	: allocator { 4096 }
+	: allocator { }
 {}
 
 DWORD wootwoot(

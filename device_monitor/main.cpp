@@ -22,7 +22,7 @@ void application_startup()
 int main(int argc, char *argv[])
 {
     application_startup();
-    
+
     ///
     WinDeviceMonitor::doStuff2();
 

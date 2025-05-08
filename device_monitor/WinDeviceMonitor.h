@@ -17,7 +17,7 @@ public:
 	std::vector<std::string> ListDevices();
 
 private:
-	SLStackAllocator allocator;
+	SLStackAllocator<4096, 8> allocator;
 
 };
 
