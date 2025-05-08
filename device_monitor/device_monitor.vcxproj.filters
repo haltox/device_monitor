@@ -46,5 +46,8 @@
     <ClInclude Include="DebugManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SLStackAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

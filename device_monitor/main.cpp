@@ -4,17 +4,27 @@
 #include "DebugManager.h"
 #include "WinDeviceMonitor.h"
 
+#include <iostream>
+#include <stdint.h>
+#include "SLStackAllocator.h"
+
+void application_cleanup()
+{
+}
+
 void application_startup() 
 {
-    DebugManager::init();
+    DebugManager::Init();
+
+    atexit(&application_cleanup);
 }
 
 int main(int argc, char *argv[])
 {
     application_startup();
-
+    
     ///
-    WinDeviceMonitor::doStuff();
+    WinDeviceMonitor::doStuff2();
 
     ////
 
