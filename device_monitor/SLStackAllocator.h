@@ -5,10 +5,11 @@
 #include <optional>
 #include <thread>
 
-class SLStackAllocator 
+template <size_t SZ, uint8_t ALIGN>
+class SLStackAllocator
 {
 public:
-	SLStackAllocator(uint32_t poolsz);
+	SLStackAllocator();
 	~SLStackAllocator();
 
 	SLStackAllocator(const SLStackAllocator& rhs) = delete;
@@ -45,30 +46,35 @@ private:
 	bool TryReclaim(void* startOfData);
 
 	template <typename T>
-	T Align(T v, T alignment);
+	T Align(T v, T alignment) 
+	{
+		return (v & (alignment - 1)) == 0
+			? v
+			: (v + alignment) & (~(alignment - 1));
+	}
 
 private:
-
-	uint32_t poolSize;
 	uint8_t *pool;
 	std::atomic<uint32_t> tail;
 	std::atomic<uint32_t> commit;
 
 };
 
-SLStackAllocator::SLStackAllocator(uint32_t poolsz)
-	: poolSize {poolsz}
-	, pool{ new uint8_t[poolsz] }
+template <size_t SZ, uint8_t ALIGN>
+SLStackAllocator<SZ, ALIGN>::SLStackAllocator()
+	: pool{ new uint8_t[SZ] }
 	, tail {0}
 	, commit{0}
 {}
 
-SLStackAllocator::~SLStackAllocator() 
+template <size_t SZ, uint8_t ALIGN>
+SLStackAllocator<SZ, ALIGN>::~SLStackAllocator()
 {
 	delete[] pool;
 }
 
-void* SLStackAllocator::alloc(size_t size) 
+template <size_t SZ, uint8_t ALIGN>
+void* SLStackAllocator<SZ, ALIGN>::alloc(size_t size)
 {
 	void* result = nullptr;
 
@@ -87,7 +93,8 @@ void* SLStackAllocator::alloc(size_t size)
 	return result;
 }
 
-void SLStackAllocator::free(void* memory)
+template <size_t SZ, uint8_t ALIGN>
+void SLStackAllocator<SZ, ALIGN>::free(void* memory)
 {
 	uint8_t* asByteA = (uint8_t*)memory;
 	
@@ -104,7 +111,8 @@ void SLStackAllocator::free(void* memory)
 	}
 }
 
-std::optional<uint32_t> SLStackAllocator::ReserveBlock(size_t size)
+template <size_t SZ, uint8_t ALIGN>
+std::optional<uint32_t> SLStackAllocator<SZ, ALIGN>::ReserveBlock(size_t size)
 {
 	uint32_t end;
 	uint32_t blockBeginning = tail.load(std::memory_order_relaxed);;
@@ -113,7 +121,7 @@ std::optional<uint32_t> SLStackAllocator::ReserveBlock(size_t size)
 	do {
 		end = blockBeginning + size;
 
-		if (end > poolSize)
+		if (end > SZ)
 		{
 			return std::nullopt;
 		}
@@ -123,7 +131,8 @@ std::optional<uint32_t> SLStackAllocator::ReserveBlock(size_t size)
 	return blockBeginning;
 }
 
-uint32_t SLStackAllocator::InitBlock(uint32_t blockStart, size_t sz)
+template <size_t SZ, uint8_t ALIGN>
+uint32_t SLStackAllocator<SZ, ALIGN>::InitBlock(uint32_t blockStart, size_t sz)
 {
 	Header* h = (Header*)&pool[blockStart];
 	h->locked = true;
@@ -135,7 +144,8 @@ uint32_t SLStackAllocator::InitBlock(uint32_t blockStart, size_t sz)
 	return blockStart;
 }
 
-void SLStackAllocator::CommitTransaction(uint32_t bs, uint32_t transaction)
+template <size_t SZ, uint8_t ALIGN>
+void SLStackAllocator<SZ, ALIGN>::CommitTransaction(uint32_t bs, uint32_t transaction)
 {
 	while (true) {
 		uint32_t desiredStage = transaction - bs;
@@ -148,16 +158,18 @@ void SLStackAllocator::CommitTransaction(uint32_t bs, uint32_t transaction)
 	}
 }
 
-SLStackAllocator::Header* SLStackAllocator::GetBlockHeader(void* startOfData)
+template <size_t SZ, uint8_t ALIGN>
+typename SLStackAllocator<SZ, ALIGN>::Header* SLStackAllocator<SZ, ALIGN>::GetBlockHeader(void* startOfData)
 {
 	uint8_t* asByteA = (uint8_t*)startOfData;
-	SLStackAllocator::Header* header =
-		(SLStackAllocator::Header*)(asByteA - sizeof(SLStackAllocator::Header));
+	SLStackAllocator<SZ, ALIGN>::Header* header =
+		(SLStackAllocator<SZ, ALIGN>::Header*)(asByteA - sizeof(SLStackAllocator<SZ, ALIGN>::Header));
 
 	return header;
 }
 
-SLStackAllocator::Footer* SLStackAllocator::GetBlockFooter(void* startOfData)
+template <size_t SZ, uint8_t ALIGN>
+typename SLStackAllocator<SZ, ALIGN>::Footer* SLStackAllocator<SZ, ALIGN>::GetBlockFooter(void* startOfData)
 {
 	Header* h = GetBlockHeader(startOfData);
 	uint8_t* asByteA = (uint8_t*)h;
@@ -167,7 +179,8 @@ SLStackAllocator::Footer* SLStackAllocator::GetBlockFooter(void* startOfData)
 	return (SLStackAllocator::Footer*)asByteA;
 }
 
-void* SLStackAllocator::GetPreviousData(void* startOfData)
+template <size_t SZ, uint8_t ALIGN>
+void* SLStackAllocator<SZ, ALIGN>::GetPreviousData(void* startOfData)
 {
 	uint8_t* asByteA = (uint8_t*)startOfData;
 	asByteA -= sizeof(SLStackAllocator::Header);
@@ -183,7 +196,8 @@ void* SLStackAllocator::GetPreviousData(void* startOfData)
 	return &pool[prevFooter->blockStart + sizeof(SLStackAllocator::Header)];
 }
 
-bool SLStackAllocator::Reclaim(Header* header, Footer* footer)
+template <size_t SZ, uint8_t ALIGN>
+bool SLStackAllocator<SZ, ALIGN>::Reclaim(Header* header, Footer* footer)
 {
 	uint32_t t = footer->blockStart + header->size;
 	if (tail.compare_exchange_strong(t, footer->blockStart)) {
@@ -194,7 +208,8 @@ bool SLStackAllocator::Reclaim(Header* header, Footer* footer)
 	return false;
 }
 
-bool SLStackAllocator::TryReclaim(void* startOfData) {
+template <size_t SZ, uint8_t ALIGN>
+bool SLStackAllocator<SZ, ALIGN>::TryReclaim(void* startOfData) {
 	if (startOfData == nullptr) {
 		return false;
 	}
@@ -207,12 +222,4 @@ bool SLStackAllocator::TryReclaim(void* startOfData) {
 	}
 
 	return Reclaim(header, footer);
-}
-
-template <typename T>
-T SLStackAllocator::Align(T v, T alignment)
-{
-	return (v & (alignment - 1)) == 0
-		? v
-		: (v + alignment) & (~(alignment - 1));
 }
