@@ -61,7 +61,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>DEBUG=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Cfgmgr32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -72,7 +72,7 @@
       <AdditionalDependencies>Cfgmgr32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ClCompile>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
@@ -102,6 +102,7 @@
   <ItemGroup>
     <ClCompile Include="DebugManager.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="QDeviceMonitor.cpp" />
     <ClCompile Include="TestAllocRealQuick.cpp" />
     <ClCompile Include="WinDeviceMonitor.cpp" />
     <QtRcc Include="qml.qrc" />
@@ -109,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DebugManager.h" />
+    <QtMoc Include="QDeviceMonitor.h" />
     <ClInclude Include="SLStackAllocator.h" />
     <ClInclude Include="WinDeviceMonitor.h" />
   </ItemGroup>

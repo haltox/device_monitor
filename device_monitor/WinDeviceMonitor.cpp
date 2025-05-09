@@ -5,7 +5,22 @@
 #include <iostream>
 #include <Cfgmgr32.h>
 
+#include <vector>
+#include <string>
+#include <wchar.h>
+
 #include "DebugManager.h"
+
+#include <initguid.h>
+#include <Devpkey.h>
+#include <strsafe.h>
+#include <iomanip>
+
+#include <functional>
+
+//com setup class :
+// {4d36e978-e325-11ce-bfc1-08002be10318}
+
 
 WinDeviceMonitor::WinDeviceMonitor()
 	: allocator { }
@@ -38,54 +53,162 @@ DWORD wootwoot(
 	return ERROR_SUCCESS;
 }
 
-void WinDeviceMonitor::doStuff() {
+std::vector<std::wstring> 
+WinDeviceMonitor::GetInterfaceClassInstanceIdList(
+	const GUID& interfaceClass ) const
+{
+	std::vector < std::wstring > interfaceClassInstanceList{};
+	CONFIGRET result = CR_SUCCESS;
+	GUID deviceClass = interfaceClass;
 
-	// Setup 
+	do {
+		ULONG requiredSize = 0;
+		CM_Get_Device_Interface_List_SizeW(&requiredSize, 
+			&deviceClass, 
+			nullptr, 
+			CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
 
-	GUID KSCATEGORY_CAPTURE;
-	(void)CLSIDFromString(L"{6994AD05-93EF-11D0-A3CC-00A0C9223196}", &KSCATEGORY_CAPTURE);
+		WCHAR* buffer = allocator.alloc<WCHAR*>(requiredSize * sizeof(WCHAR));
+		CONFIGRET result = CM_Get_Device_Interface_ListW(&deviceClass, 
+			nullptr, 
+			buffer, 
+			requiredSize, 
+			CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
 
-	// The good one
-	//GUID_DEVINTERFACE_COMPORT
+		if (result == CR_SUCCESS) {
+			interfaceClassInstanceList = SplitWCStrList(buffer, requiredSize);
+		}
+		allocator.free(buffer);
 
-	CM_NOTIFY_FILTER filter;
-	memset(&filter, 0, sizeof(filter));
-	filter.cbSize = sizeof(CM_NOTIFY_FILTER);
-	filter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
-	filter.u.DeviceInterface.ClassGuid = KSCATEGORY_CAPTURE;
+	} while (result != CR_SUCCESS);
 
-	HCMNOTIFICATION context;
-	CONFIGRET result = CM_Register_Notification(&filter, nullptr, &wootwoot, &context);
-	if (result != CR_SUCCESS) 
-	{
-		throw std::runtime_error{ "Could not setup device notifications" };
+	return interfaceClassInstanceList;
+}
+
+std::optional<std::wstring> 
+WinDeviceMonitor::GetDeviceIdFromInterfaceClassInstanceId(
+	const std::wstring& intfClassInstaceId) const
+{
+	ULONG size = 256;
+	CONFIGRET result;
+	std::wstring instanceId{};
+
+	std::optional<std::wstring> optInstanceId{std::nullopt};
+
+	do {
+		BYTE* buffer = allocator.alloc<BYTE*>(size);
+		if (buffer == nullptr) {
+			DebugManager::Instance().Throw("no mem avail for allocation");
+			break;
+		}
+
+		ULONG bufferSize = size;
+		DEVPROPKEY key_InstanceId = DEVPKEY_Device_InstanceId;
+		DEVPROPTYPE propType = 0;
+
+		result = CM_Get_Device_Interface_PropertyW(intfClassInstaceId.c_str(),
+			&key_InstanceId, 
+			&propType, buffer, &bufferSize, 0);
+
+		DebugManager::Instance().ThrowIf(propType != DEVPROP_TYPE_STRING, 
+			"Invalid prop type");
+
+		if (result == CR_SUCCESS) {
+			optInstanceId = std::wstring{ (WCHAR*)buffer };
+		}
+
+		allocator.free(buffer);
+		size *= 2;
+	} while (result == CR_BUFFER_SMALL);
+
+	return optInstanceId;
+}
+
+std::optional<DEVINST> 
+WinDeviceMonitor::LocateDeviceInstance(
+	const std::wstring& devId ) const
+{
+	// Somehow, CM_Locate_DevNode does not accept a const WCHAR* buffer.
+	// I have to copy the device instance id somewhere else.
+	WCHAR* writableDeviceId = allocator.alloc<WCHAR*>(MAX_DEVICE_ID_LEN);
+	StringCchCopy(writableDeviceId, MAX_DEVICE_ID_LEN, devId.c_str());
+
+	DEVINST deviceInstance = { 0 };
+	CONFIGRET result = CM_Locate_DevNode(&deviceInstance, 
+		writableDeviceId, 
+		CM_LOCATE_DEVNODE_NORMAL);
+
+	allocator.free(writableDeviceId);
+	
+	return result == CR_SUCCESS 
+		? std::make_optional<>(deviceInstance) 
+		: std::nullopt;
+}
+
+std::optional<std::wstring> 
+WinDeviceMonitor::GetDevicePrettyName( DEVINST devId ) const
+{
+	std::wstring prettyName{ L"" };
+
+	DEVPROPKEY propKey_prettyName = DEVPKEY_Device_FriendlyName;
+	DEVPROPTYPE propType = { 0 };
+	
+	ULONG bufferSize = 256 * sizeof(WCHAR);
+	WCHAR* prettyNameBuf = allocator.alloc<WCHAR*>(bufferSize);
+
+	CONFIGRET result = CM_Get_DevNode_PropertyW(devId, 
+		&propKey_prettyName, 
+		&propType, 
+		(BYTE*)prettyNameBuf, 
+		&bufferSize, 0);
+	
+	if (result == CR_SUCCESS) {
+		prettyName = prettyNameBuf;
 	}
+
+	allocator.free(prettyNameBuf);
+	return result == CR_SUCCESS
+		? std::make_optional<>(prettyName)
+		: std::nullopt;
 }
 
-void WinDeviceMonitor::doStuff2() 
+std::vector<std::wstring> 
+WinDeviceMonitor::GetListOfSerialDevices() const
 {
-	GUID interfaceGUID;
+	static const GUID deviceClassComPort = GUID_DEVINTERFACE_COMPORT;
+	
+	std::vector<std::wstring> serialDevices{};
+	auto pushInVector = [&serialDevices](const std::wstring& name) { 
+		serialDevices.push_back(name); 
+		return std::make_optional<int>(0);
+	};
 
-	//(void)CLSIDFromString(L"{6994AD05-93EF-11D0-A3CC-00A0C9223196}", &interfaceGUID);
-	interfaceGUID = GUID_DEVINTERFACE_COMPORT;
-
-	WCHAR buffer[1024];
-
-	CM_Get_Device_Interface_List(&interfaceGUID,
-		NULL,
-		buffer,
-		1024,
-		CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
-
-	std::wcout << buffer << std::endl;
+	auto intfClasses = GetInterfaceClassInstanceIdList(deviceClassComPort);
+	for (std::wstring& intf : intfClasses) {
+		GetDeviceIdFromInterfaceClassInstanceId(intf)
+			.and_then(std::bind(&WinDeviceMonitor::LocateDeviceInstance, this, std::placeholders::_1))
+			.and_then(std::bind(&WinDeviceMonitor::GetDevicePrettyName, this, std::placeholders::_1))
+			.and_then(pushInVector);
+	}
+	
+	return serialDevices;
 }
 
-
-std::vector<std::string> WinDeviceMonitor::ListDevices()
+std::vector<std::wstring> 
+WinDeviceMonitor::SplitWCStrList(WCHAR* buffer, ULONG bufferLen) const
 {
-	std::vector < std::string > result{};
+	std::vector < std::wstring > deviceList{};
 
+	WCHAR* end = buffer + bufferLen;
+	while (buffer < end) {
+		auto len = wcslen(buffer);
+		if (len == 0) {
+			break;
+		}
 
+		deviceList.push_back(std::wstring{ buffer });
+		buffer += wcslen(buffer) + 1;
+	}
 
-	return result;
+	return deviceList;
 }

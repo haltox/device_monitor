@@ -41,6 +41,9 @@
     <ClCompile Include="TestAllocRealQuick.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="QDeviceMonitor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WinDeviceMonitor.h">
@@ -52,5 +55,10 @@
     <ClInclude Include="SLStackAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="QDeviceMonitor.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
 </Project>

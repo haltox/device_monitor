@@ -17,10 +17,14 @@ public:
 	SLStackAllocator& operator=(const SLStackAllocator& rhs) = delete;
 	SLStackAllocator & operator=(const SLStackAllocator && rhs) = delete;
 	
-	void* alloc(size_t size);
+	template<typename T>
+	T alloc(size_t size) {
+		return (T)AllocPrivate(size);
+	}
+
 	void free(void* memory);
 
-public:
+private:
 
 	struct Header
 	{
@@ -52,7 +56,9 @@ public:
 		static MemoryBlock FromStartOfData(void* startOfData);
 	};
 
-//private:
+private:
+	void* AllocPrivate(size_t size);
+
 	std::optional<MemoryBlock> ReserveBlock(size_t sz);
 
 	bool hasPreviousBlock(MemoryBlock block);
@@ -69,7 +75,7 @@ public:
 			: (v + alignment) & (~(alignment - 1));
 	}
 
-//private:
+private:
 	uint8_t *pool;
 	std::atomic<uint64_t> tail;
 	std::atomic<uint64_t> commit;
@@ -89,14 +95,15 @@ SLStackAllocator<SZ, ALIGN>::~SLStackAllocator()
 }
 
 template <size_t SZ, uint8_t ALIGN>
-void* SLStackAllocator<SZ, ALIGN>::alloc(size_t size)
+void* SLStackAllocator<SZ, ALIGN>::AllocPrivate(size_t size)
 {
 	void* result = nullptr;
 
 	size_t blockSize = size
 		+ sizeof(SLStackAllocator::Header)
 		+ sizeof(SLStackAllocator::Footer);
-	
+	blockSize = Align<size_t>(blockSize, ALIGN);
+
 	std::optional<MemoryBlock> block = ReserveBlock(blockSize);
 	
 	if (block.has_value()) {
@@ -131,7 +138,6 @@ std::optional<typename SLStackAllocator<SZ, ALIGN>::MemoryBlock> SLStackAllocato
 	uint64_t poolEnd = ( std::bit_cast<uint64_t, uint8_t*>(pool) + SZ);
 	uint64_t end;
 	uint64_t blockAddr = tail.load(std::memory_order_relaxed);
-	size = Align<size_t>(size, 4);
 
 	do {
 		end = blockAddr + size;
