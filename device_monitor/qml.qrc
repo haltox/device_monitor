@@ -1,5 +1,11 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
+        <file>port.png</file>
+        <file>DeviceList.qml</file>
+        <file>port.ico</file>
+        <file>portw.png</file>
+        <file>port2.png</file>
+        <file>SetupWindow.qml</file>
     </qresource>
 </RCC>

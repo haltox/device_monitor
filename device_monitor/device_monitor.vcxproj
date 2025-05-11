@@ -100,19 +100,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AppSettings.cpp" />
     <ClCompile Include="DebugManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="QDeviceMonitor.cpp" />
     <ClCompile Include="TestAllocRealQuick.cpp" />
     <ClCompile Include="WinDeviceMonitor.cpp" />
+    <None Include="SetupWindow.qml" />
     <QtRcc Include="qml.qrc" />
+    <None Include="DeviceList.qml" />
     <None Include="main.qml" />
   </ItemGroup>
   <ItemGroup>
+    <QtMoc Include="AppSettings.h" />
     <ClInclude Include="DebugManager.h" />
     <QtMoc Include="QDeviceMonitor.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="SLStackAllocator.h" />
     <ClInclude Include="WinDeviceMonitor.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="port.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
