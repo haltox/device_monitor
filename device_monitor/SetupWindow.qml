@@ -8,7 +8,7 @@ import QtQuick.Layouts
 Window {
     visible: true
     width: 640
-    height: 250
+    height: 460
     title: qsTr("Ports COM - Paramètres")
 
     Rectangle {
@@ -30,6 +30,7 @@ Window {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.margins: 10
+                spacing: 10
 
                 Label {
                     text: "Paramètres de l'application"
@@ -62,10 +63,34 @@ Window {
                 }
 
                 CheckBox {
-                    text: "Afficher le port le plus pertinent lors des notifications"
-                    checked : Settings.showMostLikelyPort
+                    text: "Afficher les messages de notification lors d'un ajout de port"
+                    checked : Settings.showNotificationsPortAdded
                     onCheckedChanged: {
-                        Settings.showMostLikelyPort = checked
+                        Settings.showNotificationsPortAdded = checked
+                    }
+                }
+
+                CheckBox {
+                    text: "Afficher les messages de notification lors d'un retrait de port"
+                    checked : Settings.showNotificationsPortRemoved
+                    onCheckedChanged: {
+                        Settings.showNotificationsPortRemoved = checked
+                    }
+                }
+
+                CheckBox {
+                    text: "Afficher les messages de notification lors de tout changement de ports"
+                    checked : Settings.showNotificationsPortsChanged
+                    onCheckedChanged: {
+                        Settings.showNotificationsPortsChanged = checked
+                    }
+                }
+
+                CheckBox {
+                    text: "Afficher uniquement les ports pertinents lors des notifications"
+                    checked : Settings.showOnlyRelevantPorts
+                    onCheckedChanged: {
+                        Settings.showOnlyRelevantPorts = checked
                     }
                 }
 
@@ -77,10 +102,29 @@ Window {
                     }
 
                     TextField{
-                        text: Settings.likelyPortPattern
+                        text: Settings.relevantPortPattern
                         width: 200
                         onTextChanged: {
-                            Settings.likelyPortPattern = text
+                            Settings.relevantPortPattern = text
+                        }
+                    }
+                }
+
+                Row {
+                    spacing: 10
+                    Button {
+                        width: 290
+                        text: "Ouvrir répertoire de l'application"
+                        onClicked: {
+                            Settings.OpenAppDirInExplorer();
+                        }
+                    }
+
+                    Button {
+                        width: 290
+                        text: "Réinitialiser les paramètres"
+                        onClicked: {
+                            Settings.ResetSettings();
                         }
                     }
                 }

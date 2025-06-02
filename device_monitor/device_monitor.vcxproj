@@ -103,6 +103,7 @@
     <ClCompile Include="AppSettings.cpp" />
     <ClCompile Include="DebugManager.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="PubSubChannel.cpp" />
     <ClCompile Include="QDeviceMonitor.cpp" />
     <ClCompile Include="TestAllocRealQuick.cpp" />
     <ClCompile Include="WinDeviceMonitor.cpp" />
@@ -115,11 +116,13 @@
     <QtMoc Include="AppSettings.h" />
     <ClInclude Include="DebugManager.h" />
     <QtMoc Include="QDeviceMonitor.h" />
+    <ClInclude Include="PubSubChannel.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SLStackAllocator.h" />
     <ClInclude Include="WinDeviceMonitor.h" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="port.ico" />
     <Image Include="port.png" />
   </ItemGroup>
   <ItemGroup>

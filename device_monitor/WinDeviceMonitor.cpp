@@ -1,4 +1,4 @@
-#include "WinDeviceMonitor.h"
+﻿#include "WinDeviceMonitor.h"
 
 #include <Windows.h>
 #include <stdio.h>
@@ -26,31 +26,10 @@ WinDeviceMonitor::WinDeviceMonitor()
 	: allocator { }
 {}
 
-DWORD wootwoot(
-	_In_ HCMNOTIFICATION       hNotify,
-	_In_opt_ PVOID             Context,
-	_In_ CM_NOTIFY_ACTION      Action,
-	_In_reads_bytes_(EventDataSize) PCM_NOTIFY_EVENT_DATA EventData,
-	_In_ DWORD                 EventDataSize
-) {
-	std::wcout << L"event : ";
-
-	switch (EventData->FilterType) {
-	case CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE :
-	{
-		OLECHAR buffer[128];
-		LPOLESTR strBuffer = buffer;
-		StringFromCLSID(EventData->u.DeviceInterface.ClassGuid, &strBuffer);
-		std::wcout << strBuffer << std::endl;
-
-	} break;
-
-	case CM_NOTIFY_FILTER_TYPE_DEVICEHANDLE :
-	case CM_NOTIFY_FILTER_TYPE_DEVICEINSTANCE:
-		break;
-	}
-
-	return ERROR_SUCCESS;
+WinDeviceMonitor::~WinDeviceMonitor()
+{
+	StopMonitoringDeviceConnections();
+	deviceChangeChannel.ClearSubscriptions();
 }
 
 std::vector<std::wstring> 
@@ -192,6 +171,80 @@ WinDeviceMonitor::GetListOfSerialDevices() const
 	}
 	
 	return serialDevices;
+}
+
+DWORD NotificationHandler(
+	_In_ HCMNOTIFICATION       hNotify,
+	_In_opt_ PVOID             Context,
+	_In_ CM_NOTIFY_ACTION      Action,
+	_In_reads_bytes_(EventDataSize) PCM_NOTIFY_EVENT_DATA EventData,
+	_In_ DWORD                 EventDataSize
+) {
+	WinDeviceMonitor* monitor = static_cast<WinDeviceMonitor*>(Context);
+	monitor->OnDeviceChange();
+
+	return ERROR_SUCCESS;
+}
+
+bool
+WinDeviceMonitor::StartMonitoringDeviceConnections()
+{
+	if (notificationContext != nullptr)
+	{
+		return false;
+	}
+
+	GUID KSCATEGORY_CAPTURE;
+	(void)CLSIDFromString(L"{6994AD05-93EF-11D0-A3CC-00A0C9223196}", &KSCATEGORY_CAPTURE);
+
+	//GUID interfaceToMonitor = KSCATEGORY_CAPTURE;
+	GUID interfaceToMonitor = GUID_DEVINTERFACE_COMPORT;
+
+	CM_NOTIFY_FILTER filter;
+	memset(&filter, 0, sizeof(filter));
+	filter.cbSize = sizeof(CM_NOTIFY_FILTER);
+	filter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
+	filter.u.DeviceInterface.ClassGuid = interfaceToMonitor;
+
+	CONFIGRET result = CM_Register_Notification(&filter, this, &NotificationHandler, &notificationContext);
+	if (result != CR_SUCCESS)
+	{
+		throw std::runtime_error{ "Could not setup device notifications" };
+	}
+
+	return true;
+}
+
+bool
+WinDeviceMonitor::StopMonitoringDeviceConnections()
+{
+	if (notificationContext == nullptr)
+	{
+		return false;
+	}
+
+	CONFIGRET result = CM_Unregister_Notification(notificationContext);
+	notificationContext = nullptr;
+	return true;
+}
+
+PubSubChannel::SubscriptionId
+WinDeviceMonitor::RegisterDeviceChangeNotification(PubSubChannel::Callback callback)
+{
+	return deviceChangeChannel.Subscribe(callback);
+}
+
+void 
+WinDeviceMonitor::UnregisterDeviceChangeNotification(PubSubChannel::SubscriptionId id)
+{
+	deviceChangeChannel.Unsubscribe(id);
+}
+
+void 
+WinDeviceMonitor::OnDeviceChange()
+{
+	// Notify the subscribers
+	deviceChangeChannel.Notify();
 }
 
 std::vector<std::wstring> 

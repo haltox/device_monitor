@@ -1,6 +1,8 @@
-#pragma once
+﻿#pragma once
 #include <qobject.h>
 #include <memory>
+#include "PubSubChannel.h"
+#include <set>
 
 class WinDeviceMonitor;
 
@@ -21,8 +23,16 @@ public:
 
 signals:
 	void serialDevicesChanged();
+	void serialDeviceAdded(const QString device);
+	void serialDeviceRemoved(const QString device);
+
+private slots:
+	void OnDeviceChange();
 
 private:
 	std::unique_ptr<WinDeviceMonitor> deviceMonitor;
+	PubSubChannel::SubscriptionId subscriptionId{ 0 };
+	
+	std::set<QString> connectedDevices{};
 };
 

@@ -1,6 +1,7 @@
 ﻿import QtQuick 2.9
 import QtQuick.Window 2.2
 import Grim.DeviceMonitor 1.0
+import Grim.Settings 1.0
 import QtQuick.Controls 2.0
 import QtQuick.Layouts
 
@@ -12,7 +13,7 @@ Window {
     readonly property int numberOfLines : 5;
 
     visible: true
-    width: 320
+    width: 480
     height: lineHeight * numberOfLines
 
     minimumWidth : width;
@@ -24,6 +25,19 @@ Window {
 
     x: screen.width - width - 48
     y: 64
+
+    function getComPorStr(portLabel) {
+        // Extrait le numéro COM d'une étiquette de port, ex: "COM3 (Arduino)"
+        var match = /\((COM\d+)\)/i.exec(portLabel);
+        if (match && match.length > 1) {
+            return match[1];
+        }
+        return "";      
+    }
+    
+    function copyToClipboard(portLabel) {
+        Settings.CopyToClipboard(getComPorStr(portLabel));
+    }
 
     Flickable {
         anchors.fill: parent
@@ -39,16 +53,11 @@ Window {
             Repeater {
                 model: DeviceMonitor.serialDevices
                 delegate: Rectangle {
+                    id: item
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    //anchors.margins: 8
                     height: lineHeight + 16
                     
-                    //radius: 8
-                    //border.width: 1
-                    //border.color: (index == deviceList.selectedItem) 
-                    //    ? Universal.accent
-                    //    : Universal.foreground
                     color: (index == deviceList.selectedItem) 
                         ? Qt.lighter(Universal.accent, 1.25)
                         : Universal.background
@@ -63,12 +72,17 @@ Window {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            if( deviceList.selectedItem == index ) {
-                                deviceList.selectedItem = -1;
-                            }
-                            else {
-                                deviceList.selectedItem = index;
-                            }
+                            deviceList.selectedItem = index;
+                            item.forceActiveFocus();
+                        }
+                        onDoubleClicked: {
+                            deviceList.copyToClipboard(modelData);
+                        }
+                    }
+
+                    Keys.onPressed: function(ev) {
+                        if( ev.key === Qt.Key_C && ev.modifiers === Qt.ControlModifier ) {
+                            deviceList.copyToClipboard(modelData);
                         }
                     }
                 }

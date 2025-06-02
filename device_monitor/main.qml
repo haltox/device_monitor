@@ -15,22 +15,54 @@ SystemTrayIcon {
     visible: true
     icon.source: "qrc:/portw.png"
 
-    /*
-    property Timer timer : Timer {
-        interval: 1000;
-        repeat: false;
-        running: true;
-        onTriggered: {
-            if(system.supportsMessages) {
-                system.showMessage("test", "test", SystemTrayIcon.Information, 1000);
+    function findMostLikelyPort() {
+        var list = DeviceMonitor.serialDevices;
+        for( var l in list ) {
+            if(  list[l].indexOf(Settings.relevantPortPattern) != -1) {
+                return [list[l]];
             }
-            else {
-                console.log("SystemTrayIcon does not support messages");
-            }
+        }
 
+        return [];
+    }
+
+    function portIsRelevant(port) {
+        return (port.indexOf(Settings.relevantPortPattern) != -1);
+    }
+
+    property Connections c: Connections {
+        target: DeviceMonitor;
+        function onSerialDevicesChanged() { 
+            if(Settings.showNotifications && Settings.showNotificationsPortsChanged){
+                system.showMessage("Ports COM", 
+                    "Les ports COMs détectés ont changé", 
+                    SystemTrayIcon.Information, 
+                    1000);
+            }
+        }
+
+        function onSerialDeviceAdded(port) { 
+            if(Settings.showNotifications && Settings.showNotificationsPortAdded){
+                if( !Settings.showOnlyRelevantPorts || portIsRelevant(port) ) {
+                    system.showMessage("Ports COM", 
+                                    "Port connecté : " + port, 
+                                    SystemTrayIcon.Information, 
+                                    1000 );
+                }
+            }
+        }
+
+        function onSerialDeviceRemoved(port) { 
+            if(Settings.showNotifications){
+                if( !Settings.showOnlyRelevantPorts || portIsRelevant(port) ) {
+                    system.showMessage("Ports COM", 
+                                    "Port retiré : " + port, 
+                                    SystemTrayIcon.Information, 
+                                    1000 );
+                }
+            }
         }
     }
-    */
 
     property DeviceList deviceList: DeviceList {
         id: deviceList;
@@ -46,7 +78,7 @@ SystemTrayIcon {
         id: setupWindow
         visible: false;
         Component.onCompleted: {
-            if( Settings.showSettingsOnStartup ) {
+            if( Settings.showSettingsOnStartup || Settings.firstStart ) {
                 setupWindow.show();
             }
         }

@@ -4,6 +4,8 @@
 #include <iostream>
 
 #include "DebugManager.h"
+#include <qapplication.h>
+#include <qclipboard.h>
 
 AppSettings::AppSettings(QObject* parent)
 	: QObject{parent}
@@ -36,24 +38,72 @@ void AppSettings::setShowNotifications(bool value) {
 	}
 }
 
-void AppSettings::setShowMostLikelyPort(bool value) {
-	if (value != showMostLikelyPort) {
-		showMostLikelyPort = value;
+void AppSettings::setShowNotificationsPortAdded(bool value) {
+	if (value != showNotificationsPortAdded) {
+		showNotificationsPortAdded = value;
 		emit settingsChanged();
-		emit showMostLikelyPortChanged(value);
+		emit showNotificationsPortAddedChanged(value);
 	}
 }
 
-void AppSettings::setLikelyPortPattern(QString value) {
-	if (value != likelyPortPattern) {
-		likelyPortPattern = value;
+void AppSettings::setShowNotificationsPortRemoved(bool value) {
+	if (value != showNotificationsPortRemoved) {
+		showNotificationsPortRemoved = value;
 		emit settingsChanged();
-		emit likelyPortPatternChanged(value);
+		emit showNotificationsPortRemovedChanged(value);
+	}
+}
+
+void AppSettings::setShowNotificationsPortsChanged(bool value) {
+	if (value != showNotificationsPortsChanged) {
+		showNotificationsPortsChanged = value;
+		emit settingsChanged();
+		emit showNotificationsPortsChangedChanged(value);
+	}
+}
+
+void AppSettings::setShowOnlyRelevantPorts(bool value) {
+	if (value != showOnlyRelevantPorts) {
+		showOnlyRelevantPorts = value;
+		emit settingsChanged();
+		emit showOnlyRelevantPortsChanged(value);
+	}
+}
+
+void AppSettings::setRelevantPortPattern(QString value) {
+	if (value != relevantPortPattern) {
+		relevantPortPattern = value;
+		emit settingsChanged();
+		emit relevantPortPatternChanged(value);
 	}
 }
 
 void AppSettings::setFirstStart(bool value) {
 	firstStart = value;
+}
+
+void AppSettings::OpenAppDirInExplorer() {
+	std::wstring appDir = getAppDirectory();
+
+	// Use ShellExecute to open the specified location in Explorer.
+	ShellExecute(NULL, L"open", appDir.c_str(), NULL, NULL, SW_SHOWNORMAL);
+}
+
+void AppSettings::ResetSettings() {
+	AppSettings freshBoi{};
+
+	setShowDeviceListOnStartup(freshBoi.showsDeviceListOnStartup());
+	setShowSettingsOnStartup(freshBoi.showsSettingsOnStartup());
+	setShowNotifications(freshBoi.showsNotifications());
+	setShowNotificationsPortAdded(freshBoi.showsNotificationsPortAdded());
+	setShowNotificationsPortRemoved(freshBoi.showsNotificationsPortRemoved());
+	setShowNotificationsPortsChanged(freshBoi.showsNotificationsPortsChanged());
+	setShowOnlyRelevantPorts(freshBoi.showsOnlyRelevantPorts());
+	setRelevantPortPattern(freshBoi.getLikelyPortPattern());
+}
+
+void AppSettings::CopyToClipboard(QString text) {
+	QApplication::clipboard()->setText(text);
 }
 
 void AppSettings::EnableAutosave()
@@ -78,6 +128,7 @@ bool AppSettings::Load()
 		if (kv.first.empty() || kv.second.empty()) continue;
 
 		setSetting(kv.first, kv.second);
+		setFirstStart(false);
 	}
 
 	return true;
@@ -94,8 +145,11 @@ void AppSettings::Print(std::ostream& os)
 	os << "showDeviceListOnStartup=" << (showDeviceListOnStartup ? "true" : "false") << "\n";
 	os << "showSettingsOnStartup=" << (showSettingsOnStartup ? "true" : "false") << "\n";
 	os << "showNotifications=" << (showNotifications ? "true" : "false") << "\n";
-	os << "showMostLikelyPort=" << (showMostLikelyPort ? "true" : "false") << "\n";
-	os << "likelyPortPattern=" << likelyPortPattern.toStdString() << "\n";
+	os << "showNotificationsPortAdded=" << (showNotificationsPortAdded ? "true" : "false") << "\n";
+	os << "showNotificationsPortRemoved=" << (showNotificationsPortRemoved ? "true" : "false") << "\n";
+	os << "showNotificationsPortsChanged=" << (showNotificationsPortsChanged ? "true" : "false") << "\n";
+	os << "showOnlyRelevantPorts=" << (showOnlyRelevantPorts ? "true" : "false") << "\n";
+	os << "relevantPortPattern=" << relevantPortPattern.toStdString() << "\n";
 }
 
 std::wstring AppSettings::appDataPath() const
@@ -159,10 +213,19 @@ void AppSettings::setSetting(const std::string& key, const std::string& value)
 	else if (key == "showNotifications") {
 		setShowNotifications(value == "true");
 	}
-	else if (key == "showMostLikelyPort") {
-		setShowMostLikelyPort(value == "true");
+	else if (key == "showNotificationsPortAdded") {
+		setShowNotificationsPortAdded(value == "true");
 	}
-	else if (key == "likelyPortPattern") {
-		setLikelyPortPattern(QString::fromStdString(value));
+	else if (key == "showNotificationsPortRemoved") {
+		setShowNotificationsPortRemoved(value == "true");
+	}
+	else if (key == "showNotificationsPortsChanged") {
+		setShowNotificationsPortsChanged(value == "true");
+	}
+	else if (key == "showOnlyRelevantPorts") {
+		setShowOnlyRelevantPorts(value == "true");
+	}
+	else if (key == "relevantPortPattern") {
+		setRelevantPortPattern(QString::fromStdString(value));
 	}
 }

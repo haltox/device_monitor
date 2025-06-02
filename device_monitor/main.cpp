@@ -23,7 +23,7 @@ void application_startup()
 }
 
 void updateWindowsIcon(QQmlApplicationEngine &engine) {
-    QIcon icon = QIcon{ ":/port2.png" };
+    QIcon icon = QIcon{ ":/port.png" };
 
     QList<QObject*> rootObjects = engine.rootObjects();
     for (QObject* obj : rootObjects) {

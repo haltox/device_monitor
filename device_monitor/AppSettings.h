@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <qobject.h>
 
 
@@ -22,15 +22,30 @@ class AppSettings :
 		WRITE setShowNotifications
 		NOTIFY showNotificationsChanged);
 
-	Q_PROPERTY(bool showMostLikelyPort
-		READ showsMostLikelyPort
-		WRITE setShowMostLikelyPort
-		NOTIFY showMostLikelyPortChanged);
+	Q_PROPERTY(bool showNotificationsPortAdded
+		READ showsNotificationsPortAdded
+		WRITE setShowNotificationsPortAdded
+		NOTIFY showNotificationsPortAddedChanged);
 
-	Q_PROPERTY(QString likelyPortPattern
+	Q_PROPERTY(bool showNotificationsPortRemoved
+		READ showsNotificationsPortRemoved
+		WRITE setShowNotificationsPortRemoved
+		NOTIFY showNotificationsPortRemovedChanged);
+
+	Q_PROPERTY(bool showNotificationsPortsChanged
+		READ showsNotificationsPortsChanged
+		WRITE setShowNotificationsPortsChanged
+		NOTIFY showNotificationsPortsChangedChanged);
+
+	Q_PROPERTY(bool showOnlyRelevantPorts
+		READ showsOnlyRelevantPorts
+		WRITE setShowOnlyRelevantPorts
+		NOTIFY showOnlyRelevantPortsChanged);
+
+	Q_PROPERTY(QString relevantPortPattern
 		READ getLikelyPortPattern
-		WRITE setLikelyPortPattern
-		NOTIFY likelyPortPatternChanged);
+		WRITE setRelevantPortPattern
+		NOTIFY relevantPortPatternChanged);
 
 	Q_PROPERTY(bool firstStart
 		READ isFirstStart
@@ -43,8 +58,11 @@ public:
 	bool showsDeviceListOnStartup() const { return showDeviceListOnStartup; }
 	bool showsSettingsOnStartup() const { return showSettingsOnStartup; }
 	bool showsNotifications() const { return showNotifications; }
-	bool showsMostLikelyPort() const { return showMostLikelyPort; }
-	QString getLikelyPortPattern() const { return likelyPortPattern; }
+	bool showsNotificationsPortAdded() const { return showNotificationsPortAdded; }
+	bool showsNotificationsPortRemoved() const { return showNotificationsPortRemoved; }
+	bool showsNotificationsPortsChanged() const { return showNotificationsPortsChanged; }
+	bool showsOnlyRelevantPorts() const { return showOnlyRelevantPorts; }
+	QString getLikelyPortPattern() const { return relevantPortPattern; }
 	bool isFirstStart() const { return firstStart; }
 
 	void EnableAutosave();
@@ -56,17 +74,28 @@ public slots:
 	void setShowDeviceListOnStartup(bool value);
 	void setShowSettingsOnStartup(bool value);
 	void setShowNotifications(bool value);
-	void setShowMostLikelyPort(bool value);
-	void setLikelyPortPattern(QString value);
+	void setShowNotificationsPortAdded(bool value);
+	void setShowNotificationsPortRemoved(bool value);
+	void setShowNotificationsPortsChanged(bool value);
+	void setShowOnlyRelevantPorts(bool value);
+	void setRelevantPortPattern(QString value);
 	void setFirstStart(bool value);
+
+	/// AppSettings is going to have those common functions lol
+	void OpenAppDirInExplorer();
+	void ResetSettings();
+	void CopyToClipboard(QString text);
 
 signals:
 	void settingsChanged();
 	void showDeviceListOnStartupChanged(bool value);
 	void showSettingsOnStartupChanged(bool value);
 	void showNotificationsChanged(bool value);
-	void showMostLikelyPortChanged(bool value);
-	void likelyPortPatternChanged(QString value);
+	void showNotificationsPortAddedChanged(bool value);
+	void showNotificationsPortRemovedChanged(bool value);
+	void showNotificationsPortsChangedChanged(bool value);
+	void showOnlyRelevantPortsChanged(bool value);
+	void relevantPortPatternChanged(QString value);
 
 private:
 
@@ -80,8 +109,11 @@ private:
 	bool showDeviceListOnStartup{ true };
 	bool showSettingsOnStartup{ false };
 	bool showNotifications{ true };
-	bool showMostLikelyPort{ true };
-	QString likelyPortPattern{ "USB Serial" };
+	bool showNotificationsPortAdded{ true };
+	bool showNotificationsPortRemoved{ true };
+	bool showNotificationsPortsChanged{ false };
+	bool showOnlyRelevantPorts{ true };
+	QString relevantPortPattern{ "USB Serial" };
 
 	bool firstStart{ true };
 };
