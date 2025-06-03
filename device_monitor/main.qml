@@ -13,7 +13,13 @@ SystemTrayIcon {
     id: system
     
     visible: true
+    icon.name: "Device Monitor"
     icon.source: "qrc:/portw.png"
+
+    function showDeviceListWindow() {
+        deviceList.show();
+        deviceList.raise();
+    }
 
     function findMostLikelyPort() {
         var list = DeviceMonitor.serialDevices;
@@ -90,7 +96,7 @@ SystemTrayIcon {
         visible: true
         MenuItem {
             text: qsTr("Ports COM")
-            onTriggered: deviceList.show();
+            onTriggered: showDeviceListWindow();
         }
         MenuItem {
             text: qsTr("Paramètres")
@@ -104,7 +110,8 @@ SystemTrayIcon {
 
     onActivated: (reason) => {
         if(reason == SystemTrayIcon.DoubleClick) {
-            deviceList.show();
+            deviceList.close();
+            showDeviceListWindow();
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿#include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <qapplication.h>
 #include <qqmlcontext.h>
 #include <qquickwindow.h>
 #include <QIcon>
@@ -41,6 +42,9 @@ void updateWindowsIcon(QQmlApplicationEngine &engine) {
 int main(int argc, char *argv[])
 {
     application_startup();
+
+    QCoreApplication::setApplicationName("Device Monitor");
+	QCoreApplication::setApplicationVersion("1.0.0");
 
 #if defined(Q_OS_WIN)
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
